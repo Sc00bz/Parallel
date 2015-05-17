@@ -54,7 +54,7 @@ int main(int numArgs, const char *args[])
 		TIMER_FUNC(s);
 		hashAlgo.func(hashValue, key, offset, count);
 		TIMER_FUNC(e);
-		printf("%0.0f H/s (%" PRIu64 " hashes, %0.6f seconds): %08x %08x %08x %08x\n",
+		printf("%0.0f H/s (%" PRIu64 " hashes, %0.6f seconds): %08x %08x %08x %08x %08x %08x %08x %08x\n",
 			count / TIMER_DIFF(s, e),
 			count,
 			TIMER_DIFF(s, e),
