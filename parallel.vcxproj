@@ -28,7 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="common.cpp" />
-    <ClCompile Include="hash.cpp" />
     <ClCompile Include="hashfactory.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="parallelsha256.cpp" />
