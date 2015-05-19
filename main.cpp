@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <stdio.h>
 #include "hashfactory.h"
 
 int main(int numArgs, const char *args[])

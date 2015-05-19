@@ -26,18 +26,32 @@
 #include "parallelsha256.h"
 #include "parallelsha256help.h"
 
-uint32_t ParallelSha256::inited = ParallelSha256::initCalc();
+uint32_t ParallelSha256::s_inited = ParallelSha256::initCalc();
 
 #ifdef ARC_x86
+
+#ifndef _MSC_VER
+union mem128
+{
+	__m128i  vec;
+	uint32_t m128i_u32[4];
+};
+#endif
 
 void ParallelSha256::calcSse2(void *hashOut, const void *key, uint64_t offset, uint64_t count)
 {
 	assert(count != 0);
 	assert(count % (4 * SHA256_INTERLEAVE_SSE2) == 0);
 
+#ifdef _MSC_VER
 	__m128i hash[8];
 
 	PARALLEL_SHA256_FUNC_SSE2(SHA256_INTERLEAVE_SSE2)(hash, (const uint32_t*) key, offset, count, _mm_set_epi32(3,2,1,0));
+#else
+	mem128  hash[8];
+
+	PARALLEL_SHA256_FUNC_SSE2(SHA256_INTERLEAVE_SSE2)(&(hash->vec), (const uint32_t*) key, offset, count, _mm_set_epi32(3,2,1,0));
+#endif
 
 	#define COLLAPSE_XOR(i) \
 		((uint32_t*) hashOut)[i] = hash[i].m128i_u32[0] ^ hash[i].m128i_u32[1] ^ hash[i].m128i_u32[2] ^ hash[i].m128i_u32[3]

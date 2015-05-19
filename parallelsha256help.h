@@ -85,59 +85,76 @@
 #define PARALLEL_SHA256_FUNC_AVX512_B(INTERLEAVE)    parallelSha256FuncBroadcast<__m512i, sha256Add512, sha256Sub512, sha256CmpGt512, sha2Xor512, sha256Set512, SHA256_FUNC_INIT_AVX512_B,   SHA256_FUNC_AVX512_B(INTERLEAVE),   16, INTERLEAVE>
 #endif
 
-__inline__ uint32_t sha256Add32 (uint32_t a, uint32_t b) { return a + b; }
-__inline__ __m128i  sha256Add128(__m128i  a, __m128i  b) { return    _mm_add_epi32(a, b); }
-__inline__ __m256i  sha256Add256(__m256i  a, __m256i  b) { return _mm256_add_epi32(a, b); }
 
-__inline__ __m128i  sha256Sub128(__m128i  a, __m128i  b) { return    _mm_sub_epi32(a, b); }
-__inline__ __m256i  sha256Sub256(__m256i  a, __m256i  b) { return _mm256_sub_epi32(a, b); }
+// Scalar
+__inline__ uint32_t sha256Add32   (uint32_t a, uint32_t b) { return a + b; }
+__inline__ uint32_t sha2Xor32     (uint32_t a, uint32_t b) { return a ^ b; }
+__inline__ uint32_t sha256Set32   (int      a)             { return a; }
+__inline__ uint32_t sha256ShiftR32(uint32_t a, int s)      { return a >> s; }
+__inline__ uint32_t sha256Rotr32  (uint32_t a, int s)      { return (a >> s) | (a << (32 - s)); }
 
-__inline__ __m128i  sha256CmpGt128(__m128i  a, __m128i  b) { return    _mm_cmpgt_epi32(a, b); }
-__inline__ __m256i  sha256CmpGt256(__m256i  a, __m256i  b) { return _mm256_cmpgt_epi32(a, b); }
+__inline__ uint32_t sha2Ch32       (uint32_t e, uint32_t f, uint32_t g) { return (e & f) ^ ((~e) & g); }
+__inline__ uint32_t sha2Maj32      (uint32_t a, uint32_t b, uint32_t c) { return a ^ ((a ^ b) & (a ^ c)); }
+__inline__ uint32_t sha2DoubleXor32(uint32_t a, uint32_t b, uint32_t c) { return a ^ b ^ c; }
 
-__inline__ uint32_t sha2Xor32 (uint32_t a, uint32_t b) { return a ^ b; }
-__inline__ __m128i  sha2Xor128(__m128i  a, __m128i  b) { return    _mm_xor_si128(a, b); }
-__inline__ __m256i  sha2Xor256(__m256i  a, __m256i  b) { return _mm256_xor_si256(a, b); }
 
-__inline__ uint32_t sha256Set32 (int a) { return a; }
-__inline__ __m128i  sha256Set128(int a) { return    _mm_set1_epi32(a); }
-__inline__ __m256i  sha256Set256(int a) { return _mm256_set1_epi32(a); }
+// SSE2/AVX/VX-XOP
+__inline__ __m128i sha256Add128   (__m128i a, __m128i b) { return _mm_add_epi32  (a, b); }
+__inline__ __m128i sha256Sub128   (__m128i a, __m128i b) { return _mm_sub_epi32  (a, b); }
+__inline__ __m128i sha256CmpGt128 (__m128i a, __m128i b) { return _mm_cmpgt_epi32(a, b); }
+__inline__ __m128i sha2Xor128     (__m128i a, __m128i b) { return _mm_xor_si128  (a, b); }
+__inline__ __m128i sha256Set128   (int     a)            { return _mm_set1_epi32 (a   ); }
+__inline__ __m128i sha256ShiftR128(__m128i a, int s)     { return _mm_srli_epi32 (a, s); }
+__inline__ __m128i sha256Rotr128  (__m128i a, int s)     { return _mm_or_si128(_mm_srli_epi32(a, s), _mm_slli_epi32(a, (32 - s))); }
 
-__inline__ uint32_t sha256ShiftR32 (uint32_t a, int s) { return a >> s; }
-__inline__ __m128i  sha256ShiftR128(__m128i  a, int s) { return    _mm_srli_epi32(a, s); }
-__inline__ __m256i  sha256ShiftR256(__m256i  a, int s) { return _mm256_srli_epi32(a, s); }
+__inline__ __m128i sha2Ch128       (__m128i e, __m128i f, __m128i g) { return _mm_xor_si128(_mm_and_si128(e, f), _mm_andnot_si128(e, g)); }
+__inline__ __m128i sha2Maj128      (__m128i a, __m128i b, __m128i c) { return _mm_xor_si128(a, _mm_and_si128(_mm_xor_si128(a, b), _mm_xor_si128(a, c))); }
+__inline__ __m128i sha2DoubleXor128(__m128i a, __m128i b, __m128i c) { return _mm_xor_si128(a, _mm_xor_si128(b, c)); }
 
-// CH: (e & f) ^ (~e & g)
-__inline__ uint32_t sha2Ch32    (uint32_t e, uint32_t f, uint32_t g) { return (e & f) ^ ((~e) & g); }
-__inline__ __m128i  sha2Ch128   (__m128i  e, __m128i  f, __m128i  g) { return    _mm_xor_si128(   _mm_and_si128(e, f),    _mm_andnot_si128(e, g)); }
-__inline__ __m256i  sha2Ch256   (__m256i  e, __m256i  f, __m256i  g) { return _mm256_xor_si256(_mm256_and_si256(e, f), _mm256_andnot_si256(e, g)); }
-__inline__ __m128i  sha2Ch128Xop(__m128i  e, __m128i  f, __m128i  g) { return    _mm_cmov_si128(f, g, e); }
-__inline__ __m256i  sha2Ch256Xop(__m256i  e, __m256i  f, __m256i  g) { return _mm256_cmov_si256(f, g, e); }
 
-// MAJ: a ^ ((a ^ b) & (a ^ c)) or (a & b) ^ (a & c) ^ (b & c)
-__inline__ uint32_t sha2Maj32    (uint32_t a, uint32_t b, uint32_t c) { return a ^ ((a ^ b) & (a ^ c)); }
-__inline__ __m128i  sha2Maj128   (__m128i  a, __m128i  b, __m128i  c) { return    _mm_xor_si128(a,    _mm_and_si128(   _mm_xor_si128(a, b),    _mm_xor_si128(a, c))); }
-__inline__ __m256i  sha2Maj256   (__m256i  a, __m256i  b, __m256i  c) { return _mm256_xor_si256(a, _mm256_and_si256(_mm256_xor_si256(a, b), _mm256_xor_si256(a, c))); }
-__inline__ __m128i  sha2Maj128Xop(__m128i  a, __m128i  b, __m128i  c) { return    _mm_cmov_si128(a, b,    _mm_xor_si128(b, c)); }
-__inline__ __m256i  sha2Maj256Xop(__m256i  a, __m256i  b, __m256i  c) { return _mm256_cmov_si256(a, b, _mm256_xor_si256(b, c)); }
+// AVX-XOP
+#if (!defined(__GNUC__)) || defined(PARALLEL__AVX_XOP__)
+__inline__ __m128i sha256Rotr128XOP(__m128i  a, int s) { return _mm_roti_epi32(a, 32 - s); }
 
-__inline__ uint32_t sha2DoubleXor32 (uint32_t a, uint32_t b, uint32_t c) { return a ^ b ^ c; }
-__inline__ __m128i  sha2DoubleXor128(__m128i  a, __m128i  b, __m128i  c) { return    _mm_xor_si128(a,    _mm_xor_si128(b, c)); }
-__inline__ __m256i  sha2DoubleXor256(__m256i  a, __m256i  b, __m256i  c) { return _mm256_xor_si256(a, _mm256_xor_si256(b, c)); }
+__inline__ __m128i sha2Ch128Xop (__m128i e, __m128i f, __m128i g) { return _mm_cmov_si128(f, g, e); }
+__inline__ __m128i sha2Maj128Xop(__m128i a, __m128i b, __m128i c) { return _mm_cmov_si128(a, b, _mm_xor_si128(b, c)); }
+#endif
 
-__inline__ uint32_t sha256Rotr32    (uint32_t a, int s) { return (a >> s) | (a << (32 - s)); }
-__inline__ __m128i  sha256Rotr128   (__m128i  a, int s) { return    _mm_or_si128(   _mm_srli_epi32(a, s),    _mm_slli_epi32(a, (32 - s))); }
-__inline__ __m256i  sha256Rotr256   (__m256i  a, int s) { return _mm256_or_si256(_mm256_srli_epi32(a, s), _mm256_slli_epi32(a, (32 - s))); }
-__inline__ __m128i  sha256Rotr128XOP(__m128i  a, int s) { return _mm_roti_epi32(a, 32 - s); }
 
-#ifdef __HAS_AVX512__
+// AVX2/AVX2-XOP
+#if (!defined(__GNUC__)) || defined(PARALLEL__AVX2__) || defined(PARALLEL__AVX2_XOP__)
+__inline__ __m256i sha256Add256   (__m256i a, __m256i b) { return _mm256_add_epi32  (a, b); }
+__inline__ __m256i sha256Sub256   (__m256i a, __m256i b) { return _mm256_sub_epi32  (a, b); }
+__inline__ __m256i sha256CmpGt256 (__m256i a, __m256i b) { return _mm256_cmpgt_epi32(a, b); }
+__inline__ __m256i sha2Xor256     (__m256i a, __m256i b) { return _mm256_xor_si256  (a, b); }
+__inline__ __m256i sha256Set256   (int     a)            { return _mm256_set1_epi32 (a   ); }
+__inline__ __m256i sha256ShiftR256(__m256i a, int s)     { return _mm256_srli_epi32 (a, s); }
+__inline__ __m256i sha256Rotr256  (__m256i a, int s)     { return _mm256_or_si256(_mm256_srli_epi32(a, s), _mm256_slli_epi32(a, (32 - s))); }
+
+__inline__ __m256i sha2Ch256       (__m256i e, __m256i f, __m256i g) { return _mm256_xor_si256(_mm256_and_si256(e, f), _mm256_andnot_si256(e, g)); }
+__inline__ __m256i sha2Maj256      (__m256i a, __m256i b, __m256i c) { return _mm256_xor_si256(a, _mm256_and_si256(_mm256_xor_si256(a, b), _mm256_xor_si256(a, c))); }
+__inline__ __m256i sha2DoubleXor256(__m256i a, __m256i b, __m256i c) { return _mm256_xor_si256(a, _mm256_xor_si256(b, c)); }
+#endif
+
+
+// AVX2-XOP
+#if (!defined(__GNUC__)) || defined(PARALLEL__AVX2_XOP__)
+//__inline__ __m256i sha2Ch256Xop (__m256i e, __m256i f, __m256i g) { return _mm256_cmov_si256(f, g, e); }
+//__inline__ __m256i sha2Maj256Xop(__m256i a, __m256i b, __m256i c) { return _mm256_cmov_si256(a, b, _mm256_xor_si256(b, c)); }
+__inline__ __m256i sha2Ch256Xop (__m256i e, __m256i f, __m256i g) { return _mm256_xor_si256(_mm256_and_si256(e, f), _mm256_andnot_si256(e, g)); }
+__inline__ __m256i sha2Maj256Xop(__m256i a, __m256i b, __m256i c) { return _mm256_xor_si256(a, _mm256_and_si256(_mm256_xor_si256(a, b), _mm256_xor_si256(a, c))); }
+#endif
+
+
+// AVX512
+#if defined(__HAS_AVX512__) && ((!defined(__GNUC__)) || defined(PARALLEL__AVX512__))
 #define LUT_A 0xf0
 #define LUT_B 0xcc
 #define LUT_C 0xaa
 
 __inline__ __m512i sha256Add512   (__m512i a, __m512i b) { return _mm512_add_epi32  (a, b); }
 __inline__ __m512i sha256Sub512   (__m512i a, __m512i b) { return _mm512_sub_epi32  (a, b); }
-__inline__ __m256i sha256CmpGt256 (__m512i a, __m512i b) { return _mm512_cmpgt_epi32(a, b); }
+__inline__ __m512i sha256CmpGt512 (__m512i a, __m512i b) { return _mm512_cmpgt_epi32(a, b); }
 __inline__ __m512i sha256Set512   (int     a)            { return _mm512_set1_epi32 (a   ); }
 __inline__ __m512i sha256ShiftR512(__m512i a, int s)     { return _mm512_srli_epi32 (a, s); }
 __inline__ __m512i sha2Xor512     (__m512i a, __m512i b) { return _mm512_xor_si512  (a, b); }

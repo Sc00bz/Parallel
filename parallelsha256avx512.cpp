@@ -35,14 +35,28 @@
 
 #if defined(ARC_x86) && defined(__HAS_AVX512__)
 
+#ifndef _MSC_VER
+union mem512
+{
+	__m512i  vec;
+	uint32_t m512i_u32[16];
+};
+#endif
+
 void ParallelSha256::calcAvx512(void *hashOut, const void *key, uint64_t offset, uint64_t count)
 {
 	assert(count != 0);
 	assert(count % (16 * SHA256_INTERLEAVE_AVX512) == 0);
 
-	__m256i hash[8];
+#ifdef _MSC_VER
+	__m512i hash[8];
 
 	PARALLEL_SHA256_FUNC_AVX512(SHA256_INTERLEAVE_AVX512)(hash, (const uint32_t*) key, offset, count, _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0));
+#else
+	mem512  hash[8];
+
+	PARALLEL_SHA256_FUNC_AVX512(SHA256_INTERLEAVE_AVX512)(&(hash->vec), (const uint32_t*) key, offset, count, _mm512_set_epi32(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0));
+#endif
 
 	#define COLLAPSE_XOR(i) \
 		((uint32_t*) hashOut)[i] = hash[i].m512i_u32[ 0] ^ hash[i].m512i_u32[ 1] ^ hash[i].m512i_u32[ 2] ^ hash[i].m512i_u32[ 3] ^ \

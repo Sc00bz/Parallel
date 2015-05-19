@@ -44,20 +44,25 @@ class ParallelSha256
 public:
 #ifdef ARC_x86
 #ifdef __HAS_AVX512__
-	static void calcAvx512 (void *hashOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcAvx512 (void *workOut, const void *key, uint64_t offset, uint64_t count);
 #endif
-	static void calcAvx2Xop(void *hashOut, const void *key, uint64_t offset, uint64_t count);
-	static void calcAvx2   (void *hashOut, const void *key, uint64_t offset, uint64_t count);
-	static void calcAvxXop (void *hashOut, const void *key, uint64_t offset, uint64_t count);
-	static void calcAvx    (void *hashOut, const void *key, uint64_t offset, uint64_t count);
-	static void calcSse2   (void *hashOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcAvx2Xop(void *workOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcAvx2   (void *workOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcAvxXop (void *workOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcAvx    (void *workOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcSse2   (void *workOut, const void *key, uint64_t offset, uint64_t count);
 #endif
-	static void calcNorm   (void *hashOut, const void *key, uint64_t offset, uint64_t count);
+	static void calcNorm   (void *workOut, const void *key, uint64_t offset, uint64_t count);
+
+	static void init       (void *keyOut,  const void *password, size_t passwordLength, const void *salt, size_t saltLength);
+	static void finish     (void *hashOut, size_t outLen, const void *work, const void *key);
+	static void finishKdf  (void *keyOut,  size_t outLen, const void *work, const void *password, size_t passwordLength);
 
 private:
 	ParallelSha256() {}
 	static uint32_t initCalc();
-	static uint32_t inited;
+
+	static uint32_t s_inited;
 };
 
 #endif

@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+#include <stdio.h>
 #include "hashfactory.h"
 
 using namespace std;

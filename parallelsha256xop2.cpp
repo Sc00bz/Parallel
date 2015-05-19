@@ -35,14 +35,28 @@
 
 #ifdef ARC_x86
 
+#ifndef _MSC_VER
+union mem256
+{
+	__m256i  vec;
+	uint32_t m256i_u32[8];
+};
+#endif
+
 void ParallelSha256::calcAvx2Xop(void *hashOut, const void *key, uint64_t offset, uint64_t count)
 {
 	assert(count != 0);
 	assert(count % (8 * SHA256_INTERLEAVE_AVX2_XOP) == 0);
 
+#ifdef _MSC_VER
 	__m256i hash[8];
 
 	PARALLEL_SHA256_FUNC_AVX2_XOP(SHA256_INTERLEAVE_AVX2_XOP)(hash, (const uint32_t*) key, offset, count, _mm256_set_epi32(7,6,5,4,3,2,1,0));
+#else
+	mem256  hash[8];
+
+	PARALLEL_SHA256_FUNC_AVX2_XOP(SHA256_INTERLEAVE_AVX2_XOP)(&(hash->vec), (const uint32_t*) key, offset, count, _mm256_set_epi32(7,6,5,4,3,2,1,0));
+#endif
 
 	#define COLLAPSE_XOR(i) \
 		((uint32_t*) hashOut)[i] = hash[i].m256i_u32[0] ^ hash[i].m256i_u32[1] ^ hash[i].m256i_u32[2] ^ hash[i].m256i_u32[3] ^ \
